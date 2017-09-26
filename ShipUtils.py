@@ -19,7 +19,7 @@ mmsi = "211776000"
 vessel_name = "MAERSK IDAHO"
 shipment_id = "2017011045018"
 container_number = "TEMU6379303"
-
+containers_at_port = []
 
 def find_most_recent_snapshotid(dataset_id):
 	# for a particular enigma dataset, find the most recent update of the table.
@@ -42,6 +42,20 @@ def find_most_recent_arrival(vessel_name):
 
 	most_recent_shipments(vessel_name,most_recent_arrival_date)
 
+def find_containers_by_port(port_name):
+	# find most recent lading summary table snapshot id
+	billoflading_summary_snapshotid = find_most_recent_snapshotid(billoflading_summary_2017_datasetid)
+
+	# for that id, find most recent arrival
+	url = "https://public.enigma.com/api/snapshots/" + billoflading_summary_snapshotid + "??&query_mode=advanced&query=(port_of_unlading%3A(" + port_name + "))&stats=true&row_limit=200&row_offset=0"
+	r = requests.get(url)	
+	d = r.json()
+	containers_at_port = []
+	for r in d["table_rows"]["rows"]:
+		c = { "id": r[0],"ship":r[3], "arrival": r[5], "container_number":r[23],"amount":r[25],"description":r[26] }
+		containers_at_port.append(c)
+
+	return containers_at_port
 
 def most_recent_shipments(vessel_name,most_recent_arrival,page=1):
 	# generate list of shipments for a specific vessel arriving at a specific date
@@ -116,13 +130,15 @@ def get_vessel_details(mmsi):
 			vessel_name = link.split("&")[2].replace("+"," ")
 			return vessel_name
 
-		
+
 # These functions will enable you to go from an MMSI to a Vessel Name. 
 # Query that vessel name to find its most recent port of call. 
 # And then to discover the contents of the containers it unloaded at that port.
-vessel_name = get_vessel_details(mmsi)
-find_most_recent_arrival(vessel_name)
-print things_in_container(container_number, shipment_id) #should be applied for each in the results of `find_most_recent_arrival`
 
+# vessel_name = get_vessel_details(mmsi)
+# find_most_recent_arrival(vessel_name)
+# print things_in_container(container_number, shipment_id) #should be applied for each in the results of `find_most_recent_arrival`
+# for container in find_containers_by_port("New York"):
+# 	print(container["amount"] + ": " + container["descripton"]) 
 
 
